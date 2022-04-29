@@ -2,17 +2,6 @@
 @use "@/styles/components/_inputs";
 @use '@/styles/_variables';
 
-// .displayed-value:after {
-//     position: absolute;
-//     content: "";
-//     top: 40%;
-//     right: .5rem;
-//     width: 0;
-//     height: 0;
-//     border: 5px solid transparent;
-//     border-color: variables.$highlight transparent transparent transparent;
-// }
-
 .select-hide {
     display: none;
 }
@@ -317,7 +306,7 @@ export default {
             }
         });
 
-        // TODO: Multiselect v-model kopieren, falls meherere Indizes gleichzeitig geändert werden
+        // TODO: Copy multiselect v-model if indices need to be changed at the same time
         // watch(() => props.optionIndexModelMultiple, (newval) => {
         //     if (newval.length) {
         //         multiSelected.splice(0);
