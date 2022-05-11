@@ -121,9 +121,9 @@
 </style>
 
 <template>
-<div class="relative text-left outline-none select-none cursor-pointer border border-gray-02 box-border" @keydown.stop="arrowNavigation($event)">
+<div :id="elementID" class="relative text-left outline-none select-none cursor-pointer border border-gray-02 box-border" @keydown.stop="arrowNavigation($event)">
     <span class="floating">{{ floatingLabel }}</span>
-    <div class="flex justify-start items-center bg-base select-none color-primary main-text" @click.stop="openCloseSelect($event)">
+    <div class="flex justify-start items-center bg-base select-none color-primary main-text">
         <div class="flex-grow p-2 w-10/12" :class="{ 'open': open}">
             <template v-if="!multiselect">
                 <span class="text-base color-primary">
@@ -340,7 +340,8 @@ export default {
             noValueSelected = ref(true),
             showDescription = ref(false),
             deletable = ref(false),
-            searchUUID = uuidv4();
+            searchUUID = uuidv4(),
+            elementID = uuidv4();
 
         var optionColors = reactive([]);
 
@@ -533,7 +534,7 @@ export default {
 
         // ---------------------------------------------------------------------------------------------------- Arrow navigation
         const arrowNavigation = (evt) => {
-            // TODO Grouped-Selects kontrollieren (option.group (header) aus navigation ausschließen...).
+
             // ArrowUp === up  
             // ArrowDown === down
             // Enter === enter
@@ -611,8 +612,14 @@ export default {
                 }
             });
 
-            document.addEventListener('click', () => {
-                open.value = false
+            document.addEventListener('click', (evt) => {
+                var root = document.getElementById(elementID);
+
+                if (root.contains(evt.target)) {
+                    openCloseSelect(evt);
+                } else {
+                    open.value = false;
+                }
             });
         });
 
@@ -629,6 +636,7 @@ export default {
             optionColors,
             searchResults,
             searchUUID,
+            elementID,
             currentlySearching,
             open,
             deletable,
