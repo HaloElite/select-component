@@ -121,9 +121,9 @@
 </style>
 
 <template>
-<div :id="elementID" class="relative text-left outline-none select-none cursor-pointer border border-gray-02 box-border" @keydown.stop="arrowNavigation($event)">
+<div :id="elementID" class="relative text-left outline-none select-none cursor-pointer border border-gray-02 box-border" tabindex="0" @keydown.stop="arrowNavigation($event)">
     <span class="floating">{{ floatingLabel }}</span>
-    <div class="flex justify-start items-center bg-base select-none color-primary main-text">
+    <div class="flex justify-start items-center bg-base select-none color-primary main-text" @click="openCloseSelect($event)">
         <div class="flex-grow p-2 w-10/12" :class="{ 'open': open}">
             <template v-if="!multiselect">
                 <span class="text-base color-primary">
@@ -167,19 +167,19 @@
             </div>
 
             <div class="flex flex-row">
-                <div class="dropdown-params flex-grow overflow-y-scroll overflow-x-hidden bg-base rounded-bl-sm border-l border-r border-b border-gray-01">
+                <div id="scrollBox" class="dropdown-params flex-grow overflow-y-scroll overflow-x-hidden bg-base rounded-bl-sm border border-gray-01">
                     <template v-if="!grouped">
-                        <div v-for="(option, index) of options" :key="option.value" @click="openStateOnSelect(false, index); selectEvent(option, 'select', index);">
+                        <div v-for="(option, index) of options" :key="option.value" @click="selectEvent(option, 'select', index);">
                             <!-- Show standard dropdown-->
                             <template v-if="!currentlySearching">
-                                <div tabindex="-1" class="px-4 py-2 text-base color-primary item shadow-sm outline-none" :class="[`elem-${index}`, {'bg-red-200': index === hasFocus, 'bg-gray-03': (lastSelectedIndex === index && !noValueSelected), 'bg-blue-200': multiSelectIndexes.includes(index)}]" @mouseenter="descriptionIndex = index; showDescription = true;">
+                                <div @mouseover="hasFocus = index" class="px-4 py-2 text-base color-primary item shadow-sm outline-none" :class="[`elem-${index}`, {'bg-red-200': index === hasFocus, 'bg-gray-03': (lastSelectedIndex === index && !noValueSelected), 'bg-blue-200': multiSelectIndexes.includes(index)}]" @mouseenter="descriptionIndex = index; showDescription = true;">
                                     {{ option[labelBy] }} {{ hasFocus }}
                                 </div>
                             </template>
 
                             <!-- Show search results -->
                             <template v-else-if="searchResults.includes(index)">
-                                <div tabindex="-1" class="px-4 py-2 text-base color-primary item shadow-sm outline-none" :class="[`elem-${index}`, {'bg-red-200': index === searchFocus, 'bg-gray-03': (lastSelectedIndex === index && !noValueSelected), 'bg-blue-200': multiSelectIndexes.includes(index)}]" @mouseenter="descriptionIndex = index; showDescription = true;">
+                                <div @mouseover="searchFocus = index" class="px-4 py-2 text-base color-primary item shadow-sm outline-none" :class="[`elem-${index}`, {'bg-red-200': index === searchFocus, 'bg-gray-03': (lastSelectedIndex === index && !noValueSelected), 'bg-blue-200': multiSelectIndexes.includes(index)}]" @mouseenter="descriptionIndex = index; showDescription = true;">
                                     {{ option[labelBy] }} {{ searchFocus }}
                                 </div>
                             </template>
@@ -187,7 +187,7 @@
                     </template>
 
                     <template v-if="grouped">
-                        <div v-for="(option, index) of options" :key="option.value" @click="openStateOnSelect(false, index); selectEvent(option, 'select', index);">
+                        <div v-for="(option, index) of options" :key="option.value" @click="selectEvent(option, 'select', index);">
                             <template v-if="!currentlySearching">
                                 <!-- Show grouped standard dropdown headers -->
                                 <template v-if="option.group">
@@ -198,7 +198,7 @@
 
                                 <!-- Show grouped standard dropdown entries -->
                                 <template v-else>
-                                    <div :style="`background-color: ${optionColors[index]}`" tabindex="-1" class="px-4 py-2 text-base color-primary item shadow-sm outline-none" :class="[option.classNameSpec, option.classNameGen, {'text-red-200': (lastSelectedIndex === index), 'text-blue-300': multiSelectIndexes.includes(index)}]" @mouseenter="descriptionIndex = index; showDescription = true;">
+                                    <div :style="`background-color: ${optionColors[index]}`" class="px-4 py-2 text-base color-primary item shadow-sm outline-none" :class="[option.classNameSpec, option.classNameGen, {'text-red-200': (lastSelectedIndex === index), 'text-blue-300': multiSelectIndexes.includes(index)}]" @mouseenter="descriptionIndex = index; showDescription = true;">
                                         {{ option[labelBy] }}
                                     </div>
                                 </template>
@@ -214,7 +214,7 @@
 
                                 <!-- Show search results group entries -->
                                 <template v-else>
-                                    <div :style="`background-color: ${optionColors[index]}`" tabindex="-1" class="px-4 py-2 text-base color-primary item shadow-sm outline-none" :class="[option.classNameSpec, option.classNameGen, {'text-red-200': (lastSelectedIndex === index), 'text-blue-300': multiSelectIndexes.includes(index)}]" @mouseenter="descriptionIndex = index; showDescription = true;">
+                                    <div :style="`background-color: ${optionColors[index]}`" class="px-4 py-2 text-base color-primary item shadow-sm outline-none" :class="[option.classNameSpec, option.classNameGen, {'text-red-200': (lastSelectedIndex === index), 'text-blue-300': multiSelectIndexes.includes(index)}]" @mouseenter="descriptionIndex = index; showDescription = true;">
                                         {{ option[labelBy] }}
                                     </div>
                                 </template>
@@ -320,6 +320,11 @@ export default {
             required: false,
             default: false
         },
+        deletable: {
+            type: Boolean,
+            required: false,
+            default: false
+        },
         groupColors: {
             type: Array,
             required: false,
@@ -339,33 +344,32 @@ export default {
         var open = ref(false),
             noValueSelected = ref(true),
             showDescription = ref(false),
-            deletable = ref(false),
             searchUUID = uuidv4(),
             elementID = uuidv4();
 
         var optionColors = reactive([]);
 
-        const openStateOnSelect = (openState, index) => {
-            if (!props.multiselect) {
-                open.value = openState;
-            }
+        const closedState = () => {
+            open.value = false;
+            showDescription.value = false;
+            currentlySearching.value = false;
+            searchResults.splice(0);
+            searchKeyword.value = "";
         }
 
-        const openCloseSelect = (evt) => {
-            if (open.value) {
-                open.value = false;
-                showDescription.value = false;
-                currentlySearching.value = false;
-                searchResults.splice(0);
-                searchKeyword.value = "";
+        const openCloseSelect = (evt, pos) => {
+            if (open.value && !props.multiselect) {
+                closedState();
             } else {
                 open.value = true;
                 nextTick(() => {
-                    // Focus search input field
                     setTimeout(() => {
+                        // If a select was made
                         if (lastSelectedIndex.value) {
+                            hasFocus.value = lastSelectedIndex.value;
                             document.getElementsByClassName(`elem-${lastSelectedIndex.value}`)[0].focus();
                         } else {
+                            // If no element was selected
                             document.getElementsByClassName(`elem-0`)[0].focus();
                             if (currentlySearching.value) {
                                 searchFocus.value = 0;
@@ -374,7 +378,7 @@ export default {
                             }
 
                         }
-                    }, 100);
+                    }, 150);
                 });
             }
         }
@@ -442,10 +446,12 @@ export default {
         const selectEvent = (selectedOption, eventName, index) => {
             if (!props.multiselect) {
 
-                if (lastSelectedIndex.value === index && !noValueSelected.value && deletable.value) {
+                if (lastSelectedIndex.value === index && !noValueSelected.value && props.deletable) {
                     noValueSelected.value = true;
+                    hasFocus.value = 0;
+                    searchKeyword.value = "";
                     emit('update:optionIndexModel', null);
-                } else if (lastSelectedIndex.value === index && !noValueSelected.value && !deletable.value) {
+                } else if (lastSelectedIndex.value === index && !noValueSelected.value && !props.deletable) {
                     return;
                 } else {
                     lastSelectedIndex.value = index;
@@ -454,11 +460,16 @@ export default {
                     emit('update:optionIndexModel', index);
                 }
 
-                emit(eventName, selected.value);
-
+                try {
+                    emit(eventName, selected.value);
+                    open.value = false;
+                } catch (error) {
+                    console.log("Something went wrong:", error);
+                    return;
+                }
             } else if (props.multiselect) {
                 if (multiSelectIndexes.includes(index)) {
-                    if (!deletable.value && multiSelectIndexes.length == 1) {
+                    if (!props.deletable && multiSelectIndexes.length == 1) {
                         return;
                     }
                     var position = multiSelectIndexes.indexOf(index);
@@ -466,6 +477,8 @@ export default {
 
                     if (multiSelectIndexes.length === 0) {
                         noValueSelected.value = true;
+                        hasFocus.value = 0;
+                        searchKeyword.value = "";
                         emit('update:optionIndexModelMultiple', []);
                     }
                 } else {
@@ -473,7 +486,14 @@ export default {
                     noValueSelected.value = false;
                     emit('update:optionIndexModelMultiple', multiSelectIndexes);
                 }
-                emit(eventName, multiSelected, index);
+
+                try {
+                    emit(eventName, multiSelected, index);
+                    open.value = false;
+                } catch (error) {
+                    console.log("Something went wrong:", error);
+                    return;
+                }
             }
         }
 
@@ -493,7 +513,7 @@ export default {
         }
 
         const deleteSelectedElement = (evt, eventName, index) => {
-            if (!deletable.value && multiSelectIndexes.length == 1) {
+            if (!props.deletable && multiSelectIndexes.length == 1) {
                 return;
             } else if (props.multiselect && multiSelectIndexes.length > 0) {
                 multiSelectIndexes.splice(index, 1);
@@ -534,10 +554,14 @@ export default {
 
         // ---------------------------------------------------------------------------------------------------- Arrow navigation
         const arrowNavigation = (evt) => {
+            // TODO Grouped-Selects kontrollieren (option.group (header) aus navigation ausschließen...).
+            // TODO key-scroll behavior improvements
 
-            // ArrowUp === up  
-            // ArrowDown === down
-            // Enter === enter
+            if (evt.code === "Escape") {
+                closedState();
+            }
+
+            var scrollBox = document.getElementById("scrollBox");
             if (currentlySearching.value && searchResults.length > 0) {
                 if (evt.code === "ArrowUp" && searchResults.indexOf(searchFocus.value) > 0) {
                     searchFocus.value = searchResults[(searchResults.indexOf(searchFocus.value) - 1)];
@@ -545,33 +569,46 @@ export default {
                     searchFocus.value = searchResults[(searchResults.indexOf(searchFocus.value) + 1)];
                 } else if (evt.code === "Enter") {
                     selectEvent(props.options[searchFocus.value], 'select', searchFocus.value);
-                    open.value = false;
+                    if (!props.multiselect) {
+                        open.value = false;
+                    }
                 }
 
                 if (evt.code !== "ArrowUp" && evt.code !== "ArrowDown" && evt.code !== "Enter") {
                     document.getElementById(searchUUID).focus();
                 } else {
+                    evt.preventDefault();
                     try {
-                        document.getElementsByClassName(`elem-${searchFocus.value}`)[0].focus();
+                        console.log(searchFocus.value);
+                        var x = scrollBox.getBoundingClientRect().x;
+                        var y = (document.getElementsByClassName(`elem-${searchFocus.value}`)[0].getBoundingClientRect().height * searchResults.indexOf(searchFocus.value));
+                        scrollBox.scrollTo(x, y);
                     } catch (error) {
+                        console.log(error);
                         return;
                     }
                 }
             } else {
-                if (evt.keyCode === 38 && hasFocus.value > 0) {
+                if (evt.code === "ArrowUp" && hasFocus.value > 0) {
                     hasFocus.value -= 1;
-                } else if (evt.keyCode === 40 && hasFocus.value < (props.options.length - 1)) {
+                } else if (evt.code === "ArrowDown" && hasFocus.value < (props.options.length - 1)) {
                     hasFocus.value += 1;
-                } else if (evt.keyCode === 13) {
+                } else if (evt.code === "Enter") {
                     selectEvent(props.options[hasFocus.value], 'select', hasFocus.value);
-                    open.value = false;
+                    if (!props.multiselect) {
+                        open.value = false;
+                    }
                 }
                 if (evt.code !== "ArrowUp" && evt.code !== "ArrowDown" && evt.code !== "Enter") {
                     document.getElementById(searchUUID).focus();
                 } else {
+                    evt.preventDefault();
                     try {
-                        document.getElementsByClassName(`elem-${hasFocus.value}`)[0].focus();
+                        var x = scrollBox.getBoundingClientRect().x;
+                        var y = (document.getElementsByClassName(`elem-${hasFocus.value}`)[0].getBoundingClientRect().height * hasFocus.value);
+                        scrollBox.scrollTo(x, y);
                     } catch (error) {
+                        console.log(error);
                         return;
                     }
                 }
@@ -613,19 +650,21 @@ export default {
             });
 
             document.addEventListener('click', (evt) => {
-                var root = document.getElementById(elementID);
-
-                if (root.contains(evt.target)) {
-                    openCloseSelect(evt);
+                if (document.getElementById(elementID)?.contains(evt.target)) {
+                    console.log("Inside");
                 } else {
-                    open.value = false;
+                    closedState();
                 }
             });
         });
 
         onBeforeUnmount(() => {
             document.removeEventListener('click', () => {
-                open.value = false
+                if (document.getElementById(elementID)?.contains(evt.target)) {
+                    return;
+                } else {
+                    closedState();
+                }
             });
         });
 
@@ -639,7 +678,6 @@ export default {
             elementID,
             currentlySearching,
             open,
-            deletable,
             noValueSelected,
             showDescription,
             descriptionIndex,
@@ -649,7 +687,6 @@ export default {
             multiSelectIndexes,
             searchKeyword,
             // Methods
-            openStateOnSelect,
             openCloseSelect,
             selectEvent,
             deleteSelected,
