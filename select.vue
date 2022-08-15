@@ -83,13 +83,13 @@
 
 @keyframes roll-in-up {
     0% {
-        transform: scaleY(0);
-        opacity: 0;
+        transform: translateY(10px);
+        opacity: .0;
         transform-origin: bottom;
     }
 
     100% {
-        transform: scaleY(1);
+        transform: translateY(0);
         opacity: 1;
         transform-origin: bottom;
     }
@@ -105,13 +105,13 @@
 
 @keyframes roll-in-down {
     0% {
-        transform: scaleY(0);
-        opacity: 0;
+        transform: translateY(-10px);
+        opacity: .0;
         transform-origin: top;
     }
 
     100% {
-        transform: scaleY(1);
+        transform: translateY(0);
         opacity: 1;
         transform-origin: top;
     }
@@ -133,37 +133,41 @@
     border-color: transparent;
     border: 1px variables.$negative solid;
 }
+
+.focused:focus {
+    border: 1px variables.$highlight solid;
+}
 </style>
 
 <template>
-<div :id="elementID" class="relative w-full outline-none select-none cursor-pointer box-border rounded-md" tabindex="0" @keydown.stop="arrowNavigation($event)">
+<div :id="elementID" role="button" class="tw-relative tw-w-full tw-outline-none tw-select-none tw-border border-gray-02 tw-cursor-pointer tw-box-border tw-rounded-md focused" tabindex="0" @keydown.stop="arrowNavigation($event)">
     <span class="floating">{{ floatingLabel }}</span>
-    <div class="flex justify-start bg-base select-none color-primary sub-text border border-gray-02 rounded-md" :class="{'border-error': hasError, 'border-highlight': open}" @click="openCloseSelect($event)">
-        <div class="flex-grow w-10/12 rounded-l-sm p-1" :class="{ 'open': open}">
+    <div class="tw-flex tw-justify-start bg-base tw-select-none color-primary sub-text tw-rounded-md" :class="{'border-error': hasError && !open, 'border-highlight': open, 'tw-bg-gray-50': deactivated}" @click="openCloseSelect($event)">
+        <div class="tw-flex-grow tw-w-8/12 tw-rounded-l-sm tw-min-w-100" :class="{ 'open': open}">
             <template v-if="!multiselect">
-                <div class="p-2">
-                    <span class="text-sm color-primary" :class="{'color-gray-01': noValueSelected}">
+                <div class="tw-p-2 tw-overflow-hidden tw-overflow-ellipsis">
+                    <span class="tw-text-sm color-primary tw-whitespace-nowrap" :class="{'color-gray-01': (noValueSelected || deactivated)}">
                         {{ displayedValue }}
                     </span>
                 </div>
             </template>
             <template v-if="multiselect">
-                <div v-if="multiSelectIndexes.length > 0">
-                    <template v-for="(idx, index) in multiSelectIndexes" :key="idx">
-                        <div v-if="index < 2" class="inline-block bg-main-dark color-primary text-sm p-2 mr-1 rounded-md">
+                <div v-if="multiSelectIndices.length > 0 && !noValueSelected">
+                    <template v-for="(idx, index) in multiSelectIndices" :key="idx">
+                        <div v-if="index < 2" class="tw-inline-block bg-main-dark color-primary tw-text-sm tw-p-2 tw-mr-1 tw-rounded-md">
                             {{ options[idx][labelBy].length > 10 ? options[idx][labelBy].substring(0, 10 - 3) + "..." : options[idx][labelBy] }}
-                            <div v-if="(multiSelectIndexes.length > 1 || deletable)" @click.stop="deleteSelectedElement($event, 'select', index)" class="leading-2 bg-transparent px-1 rounded-full inline-block">
-                                <img src="@/assets/svg/icon-x-gray.svg" class="w-4 h-4 inline-block" alt="delete">
+                            <div v-if="(multiSelectIndices.length > 1 || deletable)" @click.stop="deleteSelectedElement($event, 'select', index)" class="tw-leading-2 tw-bg-transparent tw-px-1 tw-rounded-full tw-inline-block">
+                                <img src="@/assets/svg/icon-x-gray-thin.svg" class="tw-w-4 tw-h-4 tw-inline-block" alt="delete">
                             </div>
                         </div>
-                        <div v-else-if="index === (multiSelectIndexes.length - 1)" class="inline-block color-primary text-sm p-2">
+                        <div v-else-if="index === (multiSelectIndices.length - 1)" class="tw-inline-block color-primary tw-text-sm tw-p-2">
                             + {{ (index - 1) }}
                         </div>
                     </template>
                 </div>
                 <div v-else>
-                    <div class="p-2">
-                        <span class="text-sm color-primary" :class="{'color-gray-01': noValueSelected}">
+                    <div class="tw-p-2 tw-overflow-hidden tw-overflow-ellipsis">
+                        <span class="tw-text-sm color-primary" :class="{'color-gray-01': (noValueSelected || deactivated)}">
                             {{ displayedValue }}
                         </span>
                     </div>
@@ -171,48 +175,48 @@
             </template>
         </div>
 
-        <div class="flex justify-end flex-grow bg-base w-8 rounded-r-md">
-            <div v-if="!noValueSelected && deletable" @click.stop="deleteSelected($event, 'select')" class="px-1 py-1 bg-white flex items-center">
-                <img src="@/assets/svg/icon-x-gray.svg" class="w-4 h-4 inline-block" alt="delete">
+        <div class="tw-flex tw-justify-end tw-flex-grow bg-base tw-w-8 tw-pr-2 tw-rounded-r-md" style="min-width: 50px;" :class="{'tw-bg-gray-100': deactivated}">
+            <div v-if="!noValueSelected && deletable" @click.stop="deleteSelected($event, 'select')" class="tw-px-1 tw-py-1 tw-bg-white tw-flex tw-items-center">
+                <img src="@/assets/svg/icon-x-gray-thin.svg" class="tw-w-4 tw-h-4 tw-inline-block" alt="delete">
             </div>
 
-            <div class="bg-white flex items-center px-1 py-1 rounded-r-md">
-                <img src="@/assets/svg/icon-arrow-rounded-down-gray.svg" class="w-3 h-3 inline-block" :class="{'rotate': open, 'rotateUp': !open}" alt="open/close">
+            <div class="tw-bg-white tw-flex tw-items-center tw-px-1 tw-py-1 tw-rounded-r-md">
+                <img src="@/assets/svg/icon-arrow-rounded-down-gray.svg" class="tw-w-3 tw-h-3 tw-inline-block" :class="{'rotate': open, 'rotateUp': !open}" alt="open/close">
             </div>
         </div>
     </div>
 
     <transition :name="(openingDirection === 'up' ? 'rollup' : 'rolldown')">
-        <div v-if="open" class="absolute left-0 w-full z-30 text-white bg-base cursor-pointer border border-gray-02 rounded-md" :class="{ 'bottom-full': openingDirection === 'up', 'top-full': openingDirection === 'down' }">
+        <div v-if="open" class="tw-absolute tw-left-0 tw-w-full tw-z-50 tw-text-white bg-base tw-cursor-pointer tw-border border-gray-02 tw-rounded-md" :class="{'tw-bottom-full': openingDirection === 'up', 'tw-top-full': openingDirection === 'down'}">
 
-            <div v-if="searchable && openingDirection === 'down'" class="px-4 my-2">
-                <div class="flex flex-row border-b-2 border-gray-02">
-                    <div class="bg-white flex items-center px-1 py-1 rounded-r-md">
-                        <img src="@/assets/svg/icon-lens.svg" class="w-3 h-3 inline-block" alt="search">
+            <div v-if="searchable && openingDirection === 'down'" class="tw-px-4 tw-my-2">
+                <div class="tw-flex tw-flex-row tw-border-b-2 border-gray-02">
+                    <div class="tw-bg-white tw-flex tw-items-center tw-px-1 tw-py-1 tw-rounded-r-md">
+                        <img src="@/assets/svg/icon-lens.svg" class="tw-w-3 tw-h-3 tw-inline-block" alt="search">
                     </div>
-                    <div class="flex-grow">
+                    <div class="tw-flex-grow">
                         <input :id="searchUUID" type="text" v-model="searchKeyword" @input="searchForOption" placeholder="Liste filtern" class="revert-me input-select-search">
                     </div>
-                    <div @click.stop="quitSearch" class="flex justify-center items-center">
-                        <img src="@/assets/svg/icon-x-gray.svg" class="w-4 h-4" alt="delete">
+                    <div v-if="searchKeyword.length" @click.stop="quitSearch" class="tw-flex tw-justify-center tw-items-center">
+                        <img src="@/assets/svg/icon-x-gray-thin.svg" class="tw-w-4 tw-h-4" alt="delete">
                     </div>
                 </div>
             </div>
 
-            <div class="flex flex-row">
-                <div id="scrollBox" class="dropdown-params flex-grow overflow-y-scroll overflow-x-hidden bg-base" :class="{'rounded-t-md': openingDirection === 'up', 'rounded-b-md': openingDirection === 'down'}">
+            <div class="tw-flex tw-flex-row">
+                <div id="scrollBox" class="dropdown-params tw-flex-grow tw-overflow-y-scroll tw-overflow-x-hidden bg-base" :class="{'tw-rounded-t-md': openingDirection === 'up', 'tw-rounded-b-md': openingDirection === 'down'}">
                     <template v-if="!grouped">
                         <div v-for="(option, index) of options" :key="option.value" @click="selectEvent(option, 'select', index);">
                             <!-- Show standard dropdown-->
                             <template v-if="!currentlySearching">
-                                <div @mouseover="hasFocus = index" class="px-4 py-2 text-sm color-primary item shadow-sm outline-none" :class="[`elem-${index}`, {'hover-color': index === hasFocus, 'bg-gray-03': (lastSelectedIndex === index && !noValueSelected), 'bg-main-dark': multiSelectIndexes.includes(index)}]" @mouseenter="descriptionIndex = index; showDescription = true;">
+                                <div @mouseover="hasFocus = index" class="tw-px-4 tw-py-2 tw-text-sm color-primary item tw-shadow-sm tw-outline-none" :class="[`elem-${index}`, {'hover-color': index === hasFocus, 'bg-gray-03': (lastSelectedIndex === index && !noValueSelected), 'bg-main-dark': multiSelectIndices.includes(index)}]" @mouseenter="descriptionIndex = index; showDescription = true;">
                                     {{ option[labelBy] }}
                                 </div>
                             </template>
 
                             <!-- Show search results -->
                             <template v-else-if="searchResults.includes(index)">
-                                <div @mouseover="searchFocus = index" class="px-4 py-2 text-sm color-primary item shadow-sm outline-none" :class="[`elem-${index}`, {'hover-color': index === searchFocus, 'bg-gray-03': (lastSelectedIndex === index && !noValueSelected), 'bg-main-dark': multiSelectIndexes.includes(index)}]" @mouseenter="descriptionIndex = index; showDescription = true;">
+                                <div @mouseover="searchFocus = index" class="tw-px-4 tw-py-2 tw-text-sm color-primary item tw-shadow-sm tw-outline-none" :class="[`elem-${index}`, {'hover-color': index === searchFocus, 'bg-gray-03': (lastSelectedIndex === index && !noValueSelected), 'bg-main-dark': multiSelectIndices.includes(index)}]" @mouseenter="descriptionIndex = index; showDescription = true;">
                                     {{ option[labelBy] }}
                                 </div>
                             </template>
@@ -224,14 +228,14 @@
                             <template v-if="!currentlySearching">
                                 <!-- Show grouped standard dropdown headers -->
                                 <template v-if="option.group">
-                                    <div @click.capture.stop class="px-4 py-2 font-semibold text-md bg-main-dark color-highlight shadow-sm" :class="[`elem-${index}`, {'hover-color': index === hasFocus}, option.classNameSpec, option.classNameGen]">
+                                    <div @click.capture.stop class="tw-px-4 tw-py-2 tw-font-semibold tw-text-md bg-main color-highlight tw-shadow-sm" :class="[`elem-${index}`, {'hover-color': index === hasFocus}, option.classNameSpec, option.classNameGen]">
                                         {{ option[labelBy] }}
                                     </div>
                                 </template>
 
                                 <!-- Show grouped standard dropdown entries -->
                                 <template v-else>
-                                    <div :style="`background-color: ${optionColors[index]}`" class="px-4 py-2 text-sm color-primary item shadow-sm outline-none" :class="[`elem-${index}`, {'hover-color': index === hasFocus}, option.classNameSpec, option.classNameGen, {'text-red-200': (lastSelectedIndex === index), 'text-blue-300': multiSelectIndexes.includes(index)}]" @mouseenter="descriptionIndex = index; showDescription = true;">
+                                    <div :style="`background-color: ${optionColors[index]}`" class="tw-px-4 tw-py-2 tw-text-sm color-primary item tw-shadow-sm tw-outline-none" :class="[`elem-${index}`, {'hover-color': index === hasFocus}, option.classNameSpec, option.classNameGen, {'bg-main-dark': (lastSelectedIndex === index), 'text-blue-300': multiSelectIndices.includes(index)}]" @mouseenter="descriptionIndex = index; showDescription = true;">
                                         {{ option[labelBy] }}
                                     </div>
                                 </template>
@@ -240,15 +244,15 @@
                             <template v-else-if="searchResults.includes(index)">
                                 <!-- Show search results group headers -->
                                 <template v-if="option.group">
-                                    <div @click.capture.stop class="px-4 py-2 font-semibold text-md bg-main-dark color-highlight shadow-sm" :class="[`elem-${index}`, {'hover-color': index === searchFocus}, option.classNameSpec, option.classNameGen]">
-                                        GROUP: {{ option[labelBy] }}
+                                    <div @click.capture.stop class="tw-px-4 tw-py-2 tw-font-semibold tw-text-md bg-main color-highlight tw-shadow-sm" :class="[`elem-${index}`, {'hover-color': index === searchFocus}, option.classNameSpec, option.classNameGen]">
+                                        {{ option[labelBy] }}
                                     </div>
                                 </template>
 
                                 <!-- Show search results group entries -->
                                 <template v-else>
-                                    <div :style="`background-color: ${optionColors[index]}`" class="px-4 py-2 text-sm color-primary item shadow-sm outline-none" :class="[`elem-${index}`, {'hover-color': index === searchFocus}, option.classNameSpec, option.classNameGen, {'text-red-200': (lastSelectedIndex === index), 'text-blue-300': multiSelectIndexes.includes(index)}]" @mouseenter="descriptionIndex = index; showDescription = true;">
-                                        ITEM: {{ option[labelBy] }}
+                                    <div :style="`background-color: ${optionColors[index]}`" class="tw-px-4 tw-py-2 tw-text-sm color-primary item tw-shadow-sm tw-outline-none" :class="[`elem-${index}`, {'hover-color': index === searchFocus}, option.classNameSpec, option.classNameGen, {'bg-main-dark': (lastSelectedIndex === index), 'text-blue-300': multiSelectIndices.includes(index)}]" @mouseenter="descriptionIndex = index; showDescription = true;">
+                                        {{ option[labelBy] }}
                                     </div>
                                 </template>
                             </template>
@@ -256,22 +260,22 @@
                     </template>
                 </div>
 
-                <div v-if="optionDescription && showDescription" class="dropdown-params max-w-250 text-left px-4 py-2 whitespace-normal overflow-y-scroll bg-primary">
+                <div v-if="optionDescription && showDescription" class="dropdown-params tw-max-w-250 tw-text-left tw-px-4 tw-py-2 tw-whitespace-normal tw-overflow-y-scroll bg-primary">
                     <p>Beschreibung:</p>
-                    <p class="text-sm text-white">{{ options[descriptionIndex].description }}</p>
+                    <p class="tw-text-sm tw-text-white">{{ options[descriptionIndex].description }}</p>
                 </div>
             </div>
 
-            <div v-if="searchable && openingDirection === 'up'" class="px-4 my-2">
-                <div class="flex flex-row">
-                    <div class="bg-white flex items-center px-1 py-1 rounded-r-md">
-                        <img src="@/assets/svg/icon-lens.svg" class="w-3 h-3 inline-block" alt="search">
+            <div v-if="searchable && openingDirection === 'up'" class="tw-px-4 tw-my-2">
+                <div class="tw-flex tw-flex-row tw-border-t-2 border-gray-02">
+                    <div class="tw-bg-white tw-flex tw-items-center tw-px-1 tw-py-1 tw-rounded-r-md">
+                        <img src="@/assets/svg/icon-lens.svg" class="tw-w-3 tw-h-3 tw-inline-block" alt="search">
                     </div>
-                    <div class="flex-grow">
+                    <div class="tw-flex-grow">
                         <input :id="searchUUID" type="text" v-model="searchKeyword" @input="searchForOption" placeholder="Liste filtern" class="revert-me input-select-search" style="pointer-event: auto;">
                     </div>
-                    <div @click.stop="quitSearch" class="flex justify-center items-center">
-                        <img src="@/assets/svg/icon-x-gray.svg" class="w-4 h-4" alt="delete">
+                    <div  v-if="searchKeyword.length" @click.stop="quitSearch" class="tw-flex tw-justify-center tw-items-center">
+                        <img src="@/assets/svg/icon-x-gray-thin.svg" class="tw-w-4 tw-h-4" alt="delete">
                     </div>
                 </div>
             </div>
@@ -319,11 +323,6 @@ export default {
             type: String,
             required: false,
             default: "- Bitte wählen -"
-        },
-        openingDirection: {
-            type: String,
-            required: false,
-            default: "down"
         },
         labelBy: {
             type: String,
@@ -378,6 +377,11 @@ export default {
             required: false,
             default: false
         },
+        deactivated: {
+            type: Boolean,
+            required: false,
+            default: false
+        }
     },
     emits: ['select', ['update:optionIndexModel'],
         ['update:optionIndexModelMultiple']
@@ -389,10 +393,15 @@ export default {
         var open = ref(false),
             noValueSelected = ref(true),
             showDescription = ref(false),
+            openingDirection = ref("down"),
             searchUUID = uuidv4(),
             elementID = uuidv4();
 
+
         var optionColors = reactive([]);
+        var supportsPassive = false, 
+            timerId = null,
+            element = null;
 
         const closedState = () => {
             open.value = false;
@@ -402,30 +411,77 @@ export default {
             searchKeyword.value = "";
         }
 
-        const openCloseSelect = (evt, pos) => {
-            if (open.value && !props.multiselect) {
+        const delay = (ms) => {
+            return new Promise(resolve => {
+                setTimeout(resolve, ms)
+            });
+        } 
+
+        const checkIfListElementIsRendered = async (className) => {
+           await delay(5);
+           if (document.getElementsByClassName(className)[0]) {
+              return Promise.resolve(true);
+           }
+           return await checkIfListElementIsRendered(className);
+        }
+
+        var checkExist = setInterval(function () {
+            if (document.getElementsByClassName(`elem-${lastSelectedIndex.value}`)[0]) {
+                document.getElementsByClassName(`elem-${lastSelectedIndex.value}`)[0].focus();
+                scrollToFocusedElement();
+                clearInterval(checkExist);
+            }
+        }, 10);
+
+        const openCloseSelect = async (evt, pos) => {
+            if (props.deactivated) {
+                return;
+            }
+            if (open.value) {
                 closedState();
             } else {
-                open.value = true;
-                nextTick(() => {
-                    setTimeout(() => {
-                        // If a select was made
-                        if (lastSelectedIndex.value) {
+                    open.value = true;
+                    // If a select was made
+                    if ((lastSelectedIndex.value || lastSelectedMultipleIndex) && props.options.length) {
+                        if (!props.multiselect) {
                             hasFocus.value = lastSelectedIndex.value;
-                            document.getElementsByClassName(`elem-${lastSelectedIndex.value}`)[0].focus();
-                            scrollToFocusedElement();
+                            if (await checkIfListElementIsRendered(`elem-${lastSelectedIndex.value}`)) {
+                                document.getElementsByClassName(`elem-${lastSelectedIndex.value}`)[0].focus();
+                                scrollToFocusedElement();
+                            }
                         } else {
-                            // If no element was selected
-                            document.getElementsByClassName(`elem-0`)[0].focus();
+                            hasFocus.value = lastSelectedMultipleIndex;
+                            if (await checkIfListElementIsRendered(`elem-${lastSelectedMultipleIndex}`)) {
+                                document.getElementsByClassName(`elem-${lastSelectedMultipleIndex}`)[0].focus();
+                                scrollToFocusedElement();
+                            }
+                        }
+                    } else if (props.options.length) {
+                        // If no element was selected
+                        if (!props.grouped) {
+                            if (await checkIfListElementIsRendered(`elem-0`)) {
+                                document.getElementsByClassName(`elem-0`)[0].focus();
+                            }
+
                             if (currentlySearching.value) {
                                 searchFocus.value = 0;
                             } else {
                                 hasFocus.value = 0;
                             }
+                        } else {
+                            var elem = getFirstGroupedItem();
+                            if (await checkIfListElementIsRendered(`${elem.el.classNameSpec}`)) {
+                                document.getElementsByClassName(`${elem.el.classNameSpec}`)[0].focus();
+                            }
 
+                            if (currentlySearching.value) {
+                                searchFocus.value = elem.idx;
+                            } else {
+                                hasFocus.value = elem.idx;
+                            }
                         }
-                    }, 150);
-                });
+
+                    }
             }
         }
 
@@ -441,17 +497,17 @@ export default {
         var multiSelected = computed(() => {
             if (!noValueSelected.value) {
                 var temp = [];
-                multiSelectIndexes.value.forEach((el, idx) => {
-                    temp.push(props.options[index]);
+                multiSelectIndices.forEach((el, idx) => {
+                    temp.push(props.options[el]);
                 });
-
                 return temp;
             } else {
                 return [];
             }
         });
 
-        var multiSelectIndexes = reactive([]);
+        var multiSelectIndices = reactive([]);
+        var lastSelectedMultipleIndex = null;
 
         var descriptionIndex = ref(1);
         var lastSelectedIndex = ref(null);
@@ -460,33 +516,108 @@ export default {
 
         var displayedValue = computed(() => {
             if (!props.multiselect && selected.value && selected.value[props.labelBy].length) {
-                return (selected.value[props.labelBy].length > 15 ? selected.value[props.labelBy].substring(0, 20 - 3) + "..." : selected.value[props.labelBy].substring(0, 20));
+                return selected.value[props.labelBy];
+                // return (selected.value[props.labelBy].length > 15 ? selected.value[props.labelBy].substring(0, 15 - 3) + "..." : selected.value[props.labelBy].substring(0, 15));
             } else {
                 return props.noSelectionText;
             }
         })
 
+        const equals = (a, b) => {
+            return (a.length === b.length && a.every((v, i) => v === b[i]));
+        }
+
+        // Watching to changes on single v-model values
         watch(() => props.optionIndexModel, (newval) => {
-            // TODO: If grouped -> deliver the correct index for newval as prop for optionIndexModel!
-            if (typeof newval === 'number' && newval !== lastSelectedIndex.value && !noValueSelected.value && props.options) {
+            if (typeof newval === 'number' && props.options && !props.grouped) {
                 lastSelectedIndex.value = newval;
                 hasFocus.value = newval;
+                noValueSelected.value = false;
+            } else if (typeof newval === 'number' && props.options && props.grouped) {
+                lastSelectedIndex.value = determineGroupedIndex(newval);
+                hasFocus.value = determineGroupedIndex(newval);
+                noValueSelected.value = false;
+            } else if (newval === null) {
+                lastSelectedIndex.value = undefined;
+                hasFocus.value = 0;
+                noValueSelected.value = true;
             }
         });
 
-        // TODO: Multiselect v-model kopieren, falls mehrere Indizes in parent-component gleichzeitig geändert werden
-        // watch(() => props.optionIndexModelMultiple, (newval) => {
-        //     if (newval.length) {
-        //         multiSelected.splice(0);
-        //         multiSelectIndexes.splice(0);
+        // Watching to changes on multiple v-model values /as array)
+        watch(() => props.optionIndexModelMultiple, (newval) => {
+            try {
+                if (!props.grouped) {
+                    if (newval && newval.length && props.options && !equals(multiSelectIndices, newval)) {
+                        // ! Primär die Indizes kopieren
+                        multiSelectIndices.splice(0);
+                        for (let i = 0; i < newval.length; i++) {
+                            if (typeof newval[i] == 'number' && newval[i] < props.options.length && newval[i] >= 0) {
+                                multiSelectIndices.push(newval[i]);
+                            }
+                        }
+                        noValueSelected.value = false;
+                    } else if (!newval.length) {
+                        multiSelectIndices.splice(0);
+                        noValueSelected.value = true;
+                        hasFocus.value = 0;
+                    }
+                } else {
+                    // ! When grouped return indices of select_option WITHOUT GROUP HEADER ELEMENTS
+                    var temp = [];
 
-        //         multiSelectIndexes = [...newval];
-        //         multiSelectIndexes.forEach((idx) => {
-        //             multiSelected[idx] = props.options[idx];
-        //         })
-        //         console.log(multiSelected);
-        //     }
-        // });
+                    newval.forEach(el => {
+                        if (typeof el == 'number') {
+                            temp.push(determineGroupedIndex(el));
+                        }
+                    });
+
+                    // Filtering out values that are equal to current selection-indices
+                    var eq = temp.filter((el, index) => {
+                        if (el !== multiSelectIndices[index]) {
+                            return false;
+                        } else {
+                            return true;
+                        }
+                    });
+
+                    // If new model-values are'nt equal to current selection
+                    if (newval.length && props.options && eq.length < newval.length) {
+                        multiSelectIndices.splice(0);
+                        for (let i = 0; i < newval.length; i++) {
+                            if (typeof newval[i] == 'number' && newval[i] < props.options.length && newval[i] >= 0) {
+                                multiSelectIndices.push(determineGroupedIndex(newval[i]));
+                            }
+                        }
+                        noValueSelected.value = false;
+                    } else if (!newval.length) {
+                        // Reset selection if no values were selected and reset focused value to NOT be a group header 
+                        multiSelectIndices.splice(0);
+                        noValueSelected.value = true;
+                        if (open.value) {
+                            var elem = getFirstGroupedItem();
+                            document.getElementsByClassName(`${elem.el.classNameSpec}`)[0].focus();
+                            if (lastSelectedMultipleIndex) {
+                                hasFocus.value = lastSelectedMultipleIndex;
+                            } else {
+                                hasFocus.value = elem.idx;
+                            }
+                        }
+                    }
+                }
+            } catch (error) {
+                console.log(error);
+                return;    
+            }
+        }, {
+            deep: true
+        });
+
+        watch(() => props.deactivated, (newval) => {
+            if (newval) {
+                closedState();
+            }
+        });
 
         // ---------------------------------------------------------------------------------------------------- Select methods
         const selectEvent = (selectedOption, eventName, index) => {
@@ -497,12 +628,22 @@ export default {
                     searchKeyword.value = "";
                     emit('update:optionIndexModel', null);
                 } else if (lastSelectedIndex.value === index && !noValueSelected.value && !props.deletable) {
+                    open.value = false;
                     return;
                 } else {
                     lastSelectedIndex.value = index;
                     hasFocus.value = index;
                     noValueSelected.value = false;
-                    emit('update:optionIndexModel', index);
+                    // ! When grouped return index of select_option WITHOUT GROUP HEADER ELEMENTS 
+                    if (!props.grouped) {
+                        emit('update:optionIndexModel', index);
+                    } else if (props.grouped) {
+                        var temp = index;
+                        for (let i = 0; i <= index; i++) {
+                            if (props.options[i]?.group === true) temp = temp - 1;
+                        }
+                        emit('update:optionIndexModel', temp);
+                    }
                 }
 
                 try {
@@ -513,29 +654,45 @@ export default {
                     return;
                 }
             } else if (props.multiselect) {
-                if (multiSelectIndexes.includes(index)) {
-                    if (!props.deletable && multiSelectIndexes.length == 1) {
+                lastSelectedMultipleIndex = index;
+                if (multiSelectIndices.includes(index)) {
+                    if (!props.deletable && multiSelectIndices.length == 1) {
                         return;
                     }
-                    var position = multiSelectIndexes.indexOf(index);
-                    multiSelectIndexes.splice(position, 1);
+                    var position = multiSelectIndices.indexOf(index);
+                    multiSelectIndices.splice(position, 1);
 
-                    if (multiSelectIndexes.length === 0) {
+                    if (multiSelectIndices.length === 0) {
                         noValueSelected.value = true;
-                        hasFocus.value = 0;
                         searchKeyword.value = "";
                         emit('update:optionIndexModelMultiple', []);
+                    } else {
+                        var temp = [];
+                        for (let i = 0; i < multiSelectIndices.length; i++) {
+                            temp.push(determineStandardIndex(multiSelectIndices[i]));
+                        }
+                        emit('update:optionIndexModelMultiple', temp);
                     }
                 } else {
-                    multiSelectIndexes.push(index);
+                    multiSelectIndices.push(index);
+
                     noValueSelected.value = false;
-                    emit('update:optionIndexModelMultiple', multiSelectIndexes);
+                    // ! When grouped return index of select_option WITHOUT GROUP HEADER ELEMENTS 
+                    if (!props.grouped) {
+                        emit('update:optionIndexModelMultiple', multiSelectIndices);
+                    } else {
+                        var temp = [];
+
+                        multiSelectIndices.forEach(idx => {
+                            temp.push(determineStandardIndex(idx));
+                        });
+                        emit('update:optionIndexModelMultiple', temp);
+                    }
                 }
 
                 try {
-                    emit(eventName, multiSelected, index);
+                    emit(eventName, multiSelected.value, multiSelectIndices);
                 } catch (error) {
-                    console.log("SELECTED:", selected.value[props.labelBy].substring(0, 15 - 3));
                     console.log("Something went wrong:", error);
                     return;
                 }
@@ -548,21 +705,35 @@ export default {
             if (!props.multiselect && typeof lastSelectedIndex.value === 'number') {
                 lastSelectedIndex.value = undefined;
                 hasFocus.value = 0;
+                // noValueSelected.value = true;
+                emit(eventName, null);
                 emit('update:optionIndexModel', null);
-            } else if (props.multiselect && multiSelectIndexes.length > 0) {
-                multiSelectIndexes.splice(0);
+                open.value = false;
+            } else if (props.multiselect && multiSelectIndices.length > 0) {
+                multiSelectIndices.splice(0);
+                open.value = false;
+                emit(eventName, []);
+                emit('update:optionIndexModelMultiple', []);
             }
-
-            open.value = false;
-            emit(eventName, null);
         }
 
         const deleteSelectedElement = (evt, eventName, index) => {
-            if (!props.deletable && multiSelectIndexes.length == 1) {
+            if (!props.deletable && multiSelectIndices.length == 1) {
                 return;
-            } else if (props.multiselect && multiSelectIndexes.length > 0) {
-                multiSelectIndexes.splice(index, 1);
-                emit(eventName, multiSelected, index);
+            } else if (props.multiselect && multiSelectIndices.length > 0) {
+                multiSelectIndices.splice(index, 1);
+                emit(eventName, multiSelected.value, multiSelectIndices);
+                // ! When grouped return index of select_option WITHOUT GROUP HEADER ELEMENTS 
+                if (!props.grouped) {
+                    emit('update:optionIndexModelMultiple', multiSelectIndices);
+                } else {
+                    var temp = [];
+
+                    multiSelectIndices.forEach(idx => {
+                        temp.push(determineStandardIndex(idx));
+                    });
+                    emit('update:optionIndexModelMultiple', temp);
+                }
             }
         }
 
@@ -595,6 +766,12 @@ export default {
                             searchResults.push(index);
                         }
                     });
+
+                    var i = 0;
+                    while (props.options[searchResults[i]]?.group) {
+                        i++;
+                    }
+                    searchFocus.value = searchResults[i]
                 }
             } else {
                 currentlySearching.value = false;
@@ -611,8 +788,9 @@ export default {
         // ---------------------------------------------------------------------------------------------------- Arrow navigation
         const scrollToFocusedElement = () => {
             var scrollBox = document.getElementById("scrollBox");
+            var elem = document.getElementsByClassName(`elem-${hasFocus.value}`)[0];
             var x = scrollBox.getBoundingClientRect().x;
-            var y = (document.getElementsByClassName(`elem-${hasFocus.value}`)[0].offsetHeight * hasFocus.value) - 2 * (document.getElementsByClassName(`elem-${hasFocus.value}`)[0].offsetHeight);
+            var y = (elem.offsetHeight * hasFocus.value) - 2 * (elem.offsetHeight);
             scrollBox.scrollTo(x, y);
         }
 
@@ -620,11 +798,20 @@ export default {
             if (evt.code === "Escape") {
                 closedState();
             }
+            if (!open.value && evt.code === "Enter") {
+                openCloseSelect();
+                return;
+            }
+
+            var treshold = 0;
+            if (props.grouped) {
+                treshold = 1;
+            }
 
             var scrollBox = document.getElementById("scrollBox");
 
             if (currentlySearching.value && searchResults.length > 0) {
-                if (evt.code === "ArrowUp" && searchResults.indexOf(searchFocus.value) > 0) {
+                if (evt.code === "ArrowUp" && searchResults.indexOf(searchFocus.value) > treshold) {
                     searchFocus.value = searchResults[(searchResults.indexOf(searchFocus.value) - 1)];
 
                     if (props.options[searchFocus.value]?.group && searchFocus.value > 0) {
@@ -659,7 +846,7 @@ export default {
                     return;
                 }
             } else {
-                if (evt.code === "ArrowUp" && hasFocus.value > 0) {
+                if (evt.code === "ArrowUp" && hasFocus.value > treshold) {
                     hasFocus.value -= 1;
                     if (props.options[hasFocus.value]?.group && hasFocus.value > 0) {
                         hasFocus.value -= 1;
@@ -694,21 +881,112 @@ export default {
             }
         }
 
+        const determineGroupedIndex = (index) => {
+            var options = props.options.filter(el => {
+                return (!el.group);
+            });
+
+            if (index >= options.length) {
+                index = options.length - 1;
+            } else if (index < 0) {
+                index = 0;
+            }
+
+            var element = options[index];
+            var idx = 0;
+
+            props.options.every((el, index) => {
+                if (el.select_label === element.select_label) {
+                    idx = index;
+                    return false;
+                }
+
+                return true
+            });
+
+            return idx;
+        }
+
+        const getFirstGroupedItem = (index) => {
+            var idx = 0;
+
+            var temp = props.options.find((el, index) => {
+                idx = index;
+                return !el.hasOwnProperty("group");
+            });
+
+            return {
+                idx: idx,
+                el: temp
+            };
+        }
+
+        const determineStandardIndex = (index) => {
+            var options = props.options.filter(el => {
+                return (!el.group);
+            });
+
+            if (index > options.length) {
+                index = options.length - 1;
+            } else if (index < 0) {
+                index = 0;
+            }
+
+            var element = props.options[index]
+            var idx = 0;
+
+            options.every((el, index) => {
+                if (el.select_label === element.select_label) {
+                    idx = index;
+                    return false;
+                }
+
+                return true
+            });
+
+            return idx;
+        }
+
         onMounted(() => {
             nextTick(() => {
                 if (props.preselect && (typeof props.preselectIndex[0] == 'number') && props.preselectIndex[0] !== null && props.options.length) {
                     noValueSelected.value = false;
 
                     if (props.multiselect) {
-                        for (let i = 0; i < props.preselectIndex.length; i++) {
-                            if (typeof props.preselectIndex[i] == 'number') {
-                                multiSelectIndexes.push(i);
+                        // ! When grouped return indices of select_option WITHOUT GROUP HEADER ELEMENTS 
+                        if (props.grouped) {
+                            for (let i = 0; i < props.preselectIndex.length; i++) {
+                                if (typeof props.preselectIndex[i] == 'number' && props.preselectIndex[i] < props.options.length && props.preselectIndex[i] >= 0) {
+                                    multiSelectIndices.push(determineGroupedIndex(props.preselectIndex[i]));
+                                    lastSelectedMultipleIndex = i;
+                                }
+                            }
+                        } else {
+                            for (let i = 0; i < props.preselectIndex.length; i++) {
+                                if (typeof props.preselectIndex[i] == 'number' && props.preselectIndex[i] < props.options.length && props.preselectIndex[i] >= 0) {
+                                    multiSelectIndices.push(props.preselectIndex[i]);
+                                    lastSelectedMultipleIndex = i;
+                                }
                             }
                         }
                         // emit("select", multiSelected);
                     } else if (props.options) {
-                        lastSelectedIndex.value = props.preselectIndex[0];
-                        hasFocus.value = props.preselectIndex[0];
+                        // ! When grouped return index of select_option WITHOUT GROUP HEADER ELEMENTS 
+                        if (props.grouped) {
+                            var options = props.options.filter(el => {
+                                return (!el.group);
+                            });
+
+                            if (typeof props.preselectIndex[0] == 'number' && props.preselectIndex[0] < options.length && props.preselectIndex[0] >= 0) {
+                                lastSelectedIndex.value = determineGroupedIndex(props.preselectIndex[0]);
+                                hasFocus.value = determineGroupedIndex(props.preselectIndex[0]);
+                            }
+                        } else {
+                            if (typeof props.preselectIndex[0] == 'number' && props.preselectIndex[0] < props.options.length && props.preselectIndex[0] >= 0) {
+                                lastSelectedIndex.value = props.preselectIndex[0];
+                                hasFocus.value = props.preselectIndex[0];
+                            }
+                        }
                         // emit("select", selected.value);
                     }
                 }
@@ -734,6 +1012,42 @@ export default {
                     closedState();
                 }
             });
+
+
+            // Event Listener and calculations for opening direction
+            element = document.getElementById(elementID);
+
+            if ((window.innerHeight - element.getBoundingClientRect().bottom) > 250) {
+                openingDirection.value = "down";
+            } else {
+                openingDirection.value = "up";
+            }
+
+
+            try {
+                var opts = Object.defineProperty({}, 'passive', {
+                    get: function() {
+                        supportsPassive = true;
+                    }
+                });
+                window.addEventListener("testPassive", null, opts);
+                window.removeEventListener("testPassive", null, opts);
+            } catch (e) {}
+
+            window.addEventListener("scroll", () => {
+                if (timerId) return;
+                timerId  =  setTimeout(function () {
+                    timerId  =  null;
+
+                    if (element) {
+                        if ((window.innerHeight - element.getBoundingClientRect().bottom) > 250) {
+                            openingDirection.value = "down";
+                        } else {
+                            openingDirection.value = "up";
+                        }             
+                    }
+                }, 100);
+            }, supportsPassive ? { passive: true } : false);
         });
 
         onBeforeUnmount(() => {
@@ -744,9 +1058,26 @@ export default {
                     closedState();
                 }
             });
+
+            window.removeEventListener("scroll", () => {
+                if (timerId) return;
+                timerId  =  setTimeout(function () {
+                    console.log("CALLED");
+                    timerId  =  null;
+
+                    if (element) {
+                        if ((window.innerHeight - element.getBoundingClientRect().bottom) > 250) {
+                            openingDirection.value = "down";
+                        } else {
+                            openingDirection.value = "up";
+                        }             
+                    }
+                }, 100);
+            }, supportsPassive ? { passive: true } : false);
         });
 
         return {
+            openingDirection,
             displayedValue,
             selected,
             multiSelected,
@@ -762,7 +1093,7 @@ export default {
             lastSelectedIndex,
             hasFocus,
             searchFocus,
-            multiSelectIndexes,
+            multiSelectIndices,
             searchKeyword,
             // Methods
             openCloseSelect,
