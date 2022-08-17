@@ -140,10 +140,10 @@
 </style>
 
 <template>
-<div :id="elementID" role="button" class="tw-relative tw-w-full tw-outline-none tw-select-none tw-border border-gray-02 tw-cursor-pointer tw-box-border tw-rounded-md focused" tabindex="0" @keydown.stop="arrowNavigation($event)">
+<div :id="elementID" role="button" class="tw-relative tw-w-full tw-outline-none tw-select-none tw-border border-gray-02 tw-cursor-pointer tw-box-border tw-rounded-md focused" :class="{'border-error': hasError && !open}" tabindex="0" @keydown.stop="arrowNavigation($event)">
     <span class="floating">{{ floatingLabel }}</span>
-    <div class="tw-flex tw-justify-start bg-base tw-select-none color-primary sub-text tw-rounded-md" :class="{'border-error': hasError && !open, 'border-highlight': open, 'tw-bg-gray-50': deactivated}" @click="openCloseSelect($event)">
-        <div class="tw-flex-grow tw-w-8/12 tw-rounded-l-sm tw-min-w-100" :class="{ 'open': open}">
+    <div class="tw-flex tw-justify-start bg-base tw-select-none color-primary sub-text tw-rounded-md" :class="{'tw-bg-gray-50': deactivated}" @click="openCloseSelect($event)">
+        <div class="tw-flex-grow tw-w-8/12 tw-rounded-l-sm tw-min-w-100" :class="{'open': open}">
             <template v-if="!multiselect">
                 <div class="tw-p-2 tw-overflow-hidden tw-overflow-ellipsis">
                     <span class="tw-text-sm color-primary tw-whitespace-nowrap" :class="{'color-gray-01': (noValueSelected || deactivated)}">
@@ -203,7 +203,7 @@
                 </div>
             </div>
 
-            <div class="tw-flex tw-flex-row">
+            <div class="tw-flex tw-flex-col">
                 <div id="scrollBox" class="dropdown-params tw-flex-grow tw-overflow-y-scroll tw-overflow-x-hidden bg-base" :class="{'tw-rounded-t-md': openingDirection === 'up', 'tw-rounded-b-md': openingDirection === 'down'}">
                     <template v-if="!grouped">
                         <div v-for="(option, index) of options" :key="option.value" @click="selectEvent(option, 'select', index);">
@@ -260,9 +260,9 @@
                     </template>
                 </div>
 
-                <div v-if="optionDescription && showDescription" class="dropdown-params tw-max-w-250 tw-text-left tw-px-4 tw-py-2 tw-whitespace-normal tw-overflow-y-scroll bg-primary">
+                <div v-if="optionDescription && showDescription && options[descriptionIndex].description" class="dropdown-params w-full tw-text-left tw-px-4 tw-py-2 tw-whitespace-normal tw-overflow-y-scroll bg-primary-light tw-rounded-b-md">
                     <p>Beschreibung:</p>
-                    <p class="tw-text-sm tw-text-white">{{ options[descriptionIndex].description }}</p>
+                    <p class="tw-text-sm tw-text-white"> {{ options[descriptionIndex].description }}</p>
                 </div>
             </div>
 
@@ -389,6 +389,8 @@ export default {
     setup(props, {
         emit
     }) {
+        const controller = new AbortController();
+
         // DROPDOWN CONFIG
         var open = ref(false),
             noValueSelected = ref(true),
@@ -1011,6 +1013,8 @@ export default {
                 } else {
                     closedState();
                 }
+            }, {
+                signal: controller.signal
             });
 
 
@@ -1047,33 +1051,14 @@ export default {
                         }             
                     }
                 }, 100);
-            }, supportsPassive ? { passive: true } : false);
+            }, {
+                signal: controller.signal,
+                passive: supportsPassive ? true : false
+            });
         });
 
         onBeforeUnmount(() => {
-            document.removeEventListener('click', () => {
-                if (document.getElementById(elementID)?.contains(evt.target)) {
-                    return;
-                } else {
-                    closedState();
-                }
-            });
-
-            window.removeEventListener("scroll", () => {
-                if (timerId) return;
-                timerId  =  setTimeout(function () {
-                    console.log("CALLED");
-                    timerId  =  null;
-
-                    if (element) {
-                        if ((window.innerHeight - element.getBoundingClientRect().bottom) > 250) {
-                            openingDirection.value = "down";
-                        } else {
-                            openingDirection.value = "up";
-                        }             
-                    }
-                }, 100);
-            }, supportsPassive ? { passive: true } : false);
+            controller.abort();
         });
 
         return {
