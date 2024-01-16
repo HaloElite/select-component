@@ -1,18 +1,19 @@
 <style lang="scss" scoped>
 @use '~/styles/components/_dropdownselect';
 </style>
-    
+
 <template>
-    <div :id="elementID" role="button"
-        class="pk-select tw-relative tw-w-full tw-outline-none tw-select-none tw-cursor-pointer tw-rounded-md focused tw-box-border"
-        tabindex="0" @keydown.stop="arrowNavigation($event)">
+    <div :ref="(el) => { containerElement = el }" role="button"
+        class="pk-select tw-relative tw-w-full tw-outline-none tw-select-none tw-cursor-pointer tw-rounded-md tw-box-border"
+        :tabindex="tabindex" @keydown.stop="arrowNavigation($event)">
         <span class="floating">{{ floatingLabel }}</span>
-        <div class="tw-flex tw-h-8 tw-justify-start tw-items-center bg-base tw-select-none color-primary sub-text tw-rounded-md tw-border border-gray-02 tw-box-border"
-            :class="{ 'border-error': hasError && !open, 'border-highlight': open, 'tw-border-b tw-rounded-b-none': open && openingDirection === 'down', 'tw-border-t tw-rounded-t-none': open && openingDirection === 'up', 'tw-bg-gray-50': deactivated }"
+
+        <div class="tw-flex tw-h-8 tw-justify-start tw-items-center bg-base tw-select-none color-primary sub-text tw-rounded-md tw-border tw-box-border pk-select-inner"
+            :class="{ 'border-gray-02': !rimless && !activeElement, 'border-primary': activeElement, 'tw-border-transparent': rimless, 'border-error': hasError && !open, 'border-highlight': open, 'tw-bg-gray-50': deactivated }"
             @click="openCloseSelect($event)">
-            <div class="tw-flex-grow tw-w-8/12 tw-rounded-l-sm tw-min-w-100" :class="{ 'open': open }">
+            <div class="tw-w-full tw-rounded-l-sm tw-min-w-50" :class="{ 'open': open }">
                 <template v-if="!multiselect">
-                    <div class="tw-px-2 tw-overflow-hidden tw-overflow-ellipsis" :class="{ 'tw-pl-10': hasIcon }">
+                    <div class="tw-pl-2 tw-overflow-hidden tw-overflow-ellipsis" :class="{ 'tw-pl-10': hasIcon }">
                         <img v-if="hasIcon && !deactivated" :src="iconPath" alt="icon" width="20px" height="20px"
                             class="tw-absolute tw-left-2 tw-top-1/2 tw-transform -tw-translate-y-1/2 tw-h-auto tw-w-5"
                             @dragstart.prevent>
@@ -21,22 +22,33 @@
                             @dragstart.prevent>
 
                         <span class="tw-text-sm color-primary tw-whitespace-nowrap"
-                            :class="{ 'color-gray-01': (noValueSelected || deactivated) }">
-                            {{ displayedValue }}
+                            :class="{ 'color-gray-01': (noValueSelected || deactivated), 'tw-flex tw-justify-between tw-items-center': showAdditionalInfoDisplayed && additionalInfoDisplayed.length }">
+                            <span
+                                :class="{ 'tw-w-3/4 tw-min-w-50': showAdditionalInfoDisplayed, 'tw-w-full': !showAdditionalInfoDisplayed }"
+                                class="tw-text-ellipsis tw-overflow-hidden tw-whitespace-nowrap">
+                                {{ displayedValue }}
+                            </span>
+                            <span v-if="showAdditionalInfoDisplayed && additionalInfoDisplayed.length && options.length"
+                                :title="additionalInfoDisplayed"
+                                class="tw-overflow-hidden tw-overflow-ellipsis tw-whitespace-nowrap tw-max-w-100 tw-border tw-px-1 tw-rounded-sm border-gray-02 color-gray-01">
+                                {{ additionalInfoDisplayed }}
+                            </span>
                         </span>
                     </div>
                 </template>
                 <template v-if="multiselect">
-                    <div v-if="multiSelectIndices.length > 0 && !noValueSelected">
+                    <div v-if="multiSelectIndices.length > 0 && !noValueSelected"
+                        class="tw-flex tw-justify-start tw-items-center tw-overflow-hidden">
                         <template v-for="(idx, index) in multiSelectIndices" :key="idx">
                             <div v-if="index < 2"
-                                class="tw-inline-block bg-main-dark color-primary tw-text-sm tw-px-2 tw-mr-1 tw-rounded-md">
+                                class="tw-flex tw-flex-nowrap tw-items-center tw-whitespace-nowrap bg-main-dark color-primary tw-text-sm tw-px-2 tw-mr-1 tw-rounded-md"
+                                :class="{ 'tw-ml-1': idx === 0 }">
                                 {{ options[idx][labelBy].length > 10 ? options[idx][labelBy].substring(0, 10 - 3) + "..." :
                                     options[idx][labelBy] }}
                                 <div v-if="(multiSelectIndices.length > 1 || deletable)"
                                     @click.stop="deleteSelectedElement($event, 'select', index)"
-                                    class="tw-leading-2 tw-bg-transparent tw-px-1 tw-rounded-full tw-inline-block">
-                                    <img src="@/assets/svg/icon-xr-primary.svg" class="tw-w-4 tw-h-4 tw-inline-block"
+                                    class="tw-w-4 tw-h-4 tw-leading-2 tw-bg-transparent tw-flex tw-justify-start tw-items-center tw-ml-1 tw-rounded-full">
+                                    <img src="@/assets/svg/icon-xr-primary.svg" class="tw-h-4 tw-w-4 tw-shrink-0"
                                         alt="delete" @dragstart.prevent>
                                 </div>
                             </div>
@@ -63,19 +75,22 @@
                 </template>
             </div>
 
-            <div class="tw-flex tw-justify-end tw-flex-grow bg-base tw-w-8 tw-pr-2 tw-rounded-r-md" style="min-width: 50px;"
+            <div class="tw-flex tw-justify-end tw-flex-grow bg-base tw-pr-1 tw-rounded-r-md"
                 :class="{ 'tw-bg-gray-100': deactivated }">
                 <div v-if="!noValueSelected && deletable" @click.stop="deleteSelected($event, 'select')"
-                    class="tw-px-1 tw-py-1 tw-bg-white tw-flex tw-items-center">
+                    class="tw-bg-white tw-flex tw-items-center tw-w-4 tw-h-4 tw-shrink-0">
                     <img src="@/assets/svg/icon-xr-red.svg" class="delete-xr-red tw-w-4 tw-h-4" alt="delete">
                 </div>
 
-                <div class="tw-bg-white tw-flex tw-items-center tw-px-1 tw-py-1 tw-rounded-r-md">
+                <div class="tw-bg-white tw-flex tw-items-center tw-rounded-r-md tw-w-4 tw-h-4 tw-shrink-0"
+                    :class="{ 'tw-invisible': hideChevron }">
                     <img v-if="!deactivated" src="@/assets/svg/icon-chevron-down-primary.svg"
-                        class="tw-w-4 tw-h-4 tw-inline-block" :class="{ 'rotate': open, 'rotateUp': !open }"
+                        class="tw-w-4 tw-h-4 tw-inline-block tw-shrink-0"
+                        :class="{ 'rotate': open && enableChevronAnimation, 'rotateUp': !open && enableChevronAnimation }"
                         alt="open/close" @dragstart.prevent>
                     <img v-if="deactivated" src="@/assets/svg/icon-chevron-down-gray.svg"
-                        class="tw-w-4 tw-h-4 tw-inline-block" :class="{ 'rotate': open, 'rotateUp': !open }"
+                        class="tw-w-4 tw-h-4 tw-inline-block tw-shrink-0"
+                        :class="{ 'rotate': open && enableChevronAnimation, 'rotateUp': !open && enableChevronAnimation }"
                         alt="open/close" @dragstart.prevent>
                 </div>
             </div>
@@ -83,8 +98,8 @@
 
         <transition :name="(openingDirection === 'up' ? 'rollup' : 'rolldown')">
             <div v-if="open"
-                class="tw-absolute tw-left-0 tw-w-full tw-z-50 tw-text-white bg-base tw-cursor-pointer tw-box-border tw-border border-gray-02 tw-rounded-md"
-                :class="{ 'tw-bottom-full tw-border-b-0 shadow-soft-black tw-rounded-b-none': openingDirection === 'up', 'tw-top-full tw-border-t-0 shadow-soft-black tw-rounded-t-none': openingDirection === 'down' }">
+                class="tw-absolute tw-left-0 tw-z-50 tw-text-white bg-base tw-cursor-pointer tw-box-border tw-rounded-md"
+                :class="{ 'tw-w-full': !flexibleWidth, 'tw-w-max tw-min-w-full': flexibleWidth, 'tw-bottom-full tw-transform -tw-translate-y-1 shadow-elevate-black': openingDirection === 'up', 'tw-top-full tw-transform tw-translate-y-1 shadow-elevate-black': openingDirection === 'down' }">
 
                 <div v-if="searchable && openingDirection === 'down' && options.length" class="tw-px-4 tw-my-2">
                     <div class="tw-flex tw-flex-row tw-border-b border-gray-02">
@@ -93,8 +108,8 @@
                                 @dragstart.prevent>
                         </div>
                         <div class="tw-flex-grow">
-                            <input :id="searchUUID" type="text" v-model="searchKeyword" @input="searchForOption"
-                                placeholder="Liste filtern" class="revert-me input-select-search">
+                            <input :ref="(el) => { searchInput = el }" type="text" v-model="searchKeyword"
+                                @input="searchForOption" placeholder="Liste filtern" class="revert-me input-select-search">
                         </div>
                         <div v-if="searchKeyword.length" @click.stop="quitSearch"
                             class="tw-flex tw-justify-center tw-items-center">
@@ -104,83 +119,112 @@
                     </div>
                 </div>
 
-                <div class="tw-flex tw-flex-row" :id="`dropdowntab${elementID}`">
-                    <div id="scrollBox"
+                <div class="tw-flex tw-flex-row" :ref="(el) => { dropdownTab = el }">
+                    <div id="scrollBox" ref="scrollBox"
                         class="dropdown-params tw-flex-grow tw-overflow-y-auto tw-overflow-x-hidden bg-base tw-break-words"
                         :class="{ 'tw-rounded-t-md': openingDirection === 'up', 'tw-rounded-b-md': openingDirection === 'down' && !addElementActive }">
+
+                        <!-- ############# NOT GROUPED SELECT OPTIONS ############# -->
                         <template v-if="!grouped">
-                            <div v-for="(option, index) of                          options                         "
-                                :key="option.value" @click="selectEvent(option, 'select', index);">
+                            <div v-for="(option, index) of  options " :key="option.value"
+                                @click="selectEvent(option, 'select', index);">
                                 <!-- Show standard dropdown-->
-                                <template v-if=" !currentlySearching ">
-                                    <div @mouseover=" hasFocus = index "
-                                        class="tw-px-4 tw-py-2 tw-text-sm color-primary item tw-shadow-sm tw-outline-none"
-                                        :class=" [`elem-${index}`, { 'hover-color': index === hasFocus, 'bg-gray-03': (lastSelectedIndex === index && !noValueSelected), 'bg-main-dark': multiSelectIndices.includes(index) }] "
-                                        @mouseenter=" descriptionIndex = index; showDescription = true; ">
-                                        {{ option[labelBy] }}
-                                        <PkSelectAdditionals v-if=" displayAdditionals "
-                                            :info1=" additionalInfo[index]?.info1 " :info2=" additionalInfo[index]?.info2 "
-                                            :hasFocus=" index === hasFocus ">
+                                <template v-if="!currentlySearching">
+                                    <div @mouseover=" hasFocus = index"
+                                        class="tw-px-4 tw-py-2 tw-text-sm color-primary tw-shadow-sm tw-outline-none"
+                                        :ref="setElemRefs"
+                                        :class="`dropdown-item-${hoverColor}`, [{ 'select-hover-highlight': index === hasFocus && hoverColor === 'highlight', 'select-hover-gray': index === hasFocus && hoverColor === 'gray', 'bg-gray-03': (lastSelectedIndex === index && lastSelectedIndex === hasFocus && !noValueSelected), 'bg-main-dark': multiSelectIndices.includes(index) }]"
+                                        @mouseenter=" descriptionIndex = index; showDescription = true;">
+                                        <span class="tw-inline-flex tw-items-center">
+                                            {{ option[labelBy] }}
+                                            <div v-if="showIndicator" :title="option.indicatorTitle"
+                                                class="tw-inline-block tw-rounded-full tw-p-1 tw-border-2 tw-ml-1"
+                                                :class="{ 'bg-success border-success': option.indicatorFilled, 'bg-base border-success': !option.indicatorFilled }">
+                                            </div>
+                                        </span>
+                                        <PkSelectAdditionals v-if="displayAdditionals" :info1="additionalInfo[index]?.info1"
+                                            :info2="additionalInfo[index]?.info2" :hasFocus="index === hasFocus">
                                         </PkSelectAdditionals>
                                     </div>
                                 </template>
 
                                 <!-- Show search results -->
-                                <template v-else-if=" searchResults.includes(index) ">
-                                    <div @mouseover=" searchFocus = index "
-                                        class="tw-px-4 tw-py-2 tw-text-sm color-primary item tw-shadow-sm tw-outline-none"
-                                        :class=" [`elem-${index}`, { 'hover-color': index === searchFocus, 'bg-gray-03': (lastSelectedIndex === index && !noValueSelected), 'bg-main-dark': multiSelectIndices.includes(index) }] "
-                                        @mouseenter=" descriptionIndex = index; showDescription = true; ">
-                                        {{ option[labelBy] }}
-                                        <PkSelectAdditionals v-if=" displayAdditionals "
-                                            :info1=" additionalInfo[index]?.info1 " :info2=" additionalInfo[index]?.info2 "
-                                            :hasFocus=" index === searchFocus ">
+                                <template v-else-if="searchResults.includes(index)">
+                                    <div @mouseover=" searchFocus = index"
+                                        class="tw-px-4 tw-py-2 tw-text-sm color-primary tw-shadow-sm tw-outline-none"
+                                        :ref="setElemRefs"
+                                        :class="`dropdown-item-${hoverColor}`, [{ 'select-hover-highlight': index === searchFocus && hoverColor === 'highlight', 'select-hover-gray': index === searchFocus && hoverColor === 'gray', 'bg-gray-03': (lastSelectedIndex === index && searchFocus === lastSelectedIndex && !noValueSelected), 'bg-main-dark': multiSelectIndices.includes(index) }]"
+                                        @mouseenter=" descriptionIndex = index; showDescription = true;">
+                                        <span class="tw-inline-flex tw-items-center">
+                                            {{ option[labelBy] }}
+                                            <div v-if="showIndicator" :title="option.indicatorTitle"
+                                                class="tw-inline-block tw-rounded-full tw-p-1 tw-border-2 tw-ml-1"
+                                                :class="{ 'bg-success border-success': option.indicatorFilled, 'bg-base border-success': !option.indicatorFilled }">
+                                            </div>
+                                        </span>
+                                        <PkSelectAdditionals v-if="displayAdditionals" :info1="additionalInfo[index]?.info1"
+                                            :info2="additionalInfo[index]?.info2" :hasFocus="index === searchFocus">
                                         </PkSelectAdditionals>
                                     </div>
                                 </template>
                             </div>
                         </template>
 
-                        <template v-if=" grouped ">
-                            <div v-for="(                     option, index                     ) of                      options                     "
-                                :key=" option.value " @click=" selectEvent(option, 'select', index); ">
-                                <template v-if=" !currentlySearching ">
+                        <!-- ############# GROUPED SELECT OPTIONS ############# -->
+                        <template v-if="grouped">
+                            <div v-for="( option, index ) of  options " :key="option.value"
+                                @click=" selectEvent(option, 'select', index);">
+                                <template v-if="!currentlySearching">
                                     <!-- Show grouped standard dropdown headers -->
-                                    <template v-if=" option.group ">
+                                    <template v-if="option.group">
                                         <div @click.capture.stop
                                             class="tw-px-4 tw-py-2 tw-font-semibold tw-text-md bg-main color-highlight tw-shadow-sm"
-                                            :class=" [`elem-${index}`, { 'hover-color': index === hasFocus }, option.classNameSpec, option.classNameGen] ">
-                                            {{ option[labelBy] }}
+                                            :ref="setElemRefs"
+                                            :class="[{ 'select-hover-highlight': index === hasFocus && hoverColor === 'highlight', 'select-hover-gray': index === hasFocus && hoverColor === 'gray' }, option.classNameSpec, option.classNameGen]">
+                                            <span class="tw-inline-flex tw-items-center">{{ option[labelBy] }}
+                                                <div v-if="showIndicator" :title="option.indicatorTitle"
+                                                    class="tw-inline-block tw-rounded-full tw-p-1 tw-border-2 tw-ml-1"
+                                                    :class="{ 'bg-success border-success': option.indicatorFilled, 'bg-base border-success': !option.indicatorFilled }">
+                                                </div>
+                                            </span>
                                         </div>
                                     </template>
 
                                     <!-- Show grouped standard dropdown entries -->
                                     <template v-else>
-                                        <div :style=" `background-color: ${optionColors[index]}` "
-                                            class="tw-px-4 tw-py-2 tw-text-sm color-primary item tw-shadow-sm tw-outline-none"
-                                            :class=" [`elem-${index}`, { 'hover-color': index === hasFocus }, option.classNameSpec, option.classNameGen, { 'bg-main-dark': (lastSelectedIndex === index), 'text-blue-300': multiSelectIndices.includes(index) }] "
-                                            @mouseenter=" descriptionIndex = index; showDescription = true; ">
-                                            {{ option[labelBy] }}
+                                        <div :style="`background-color: ${optionColors[index]}`"
+                                            class="tw-px-4 tw-py-2 tw-text-sm color-primary tw-shadow-sm tw-outline-none"
+                                            :ref="setElemRefs"
+                                            :class="`dropdown-item-${hoverColor}`, [{ 'select-hover-highlight': index === hasFocus && hoverColor === 'highlight', 'select-hover-gray': index === hasFocus && hoverColor === 'gray' }, option.classNameSpec, option.classNameGen, { 'bg-main-dark': (lastSelectedIndex === index), 'text-blue-300': multiSelectIndices.includes(index) }]"
+                                            @mouseenter=" descriptionIndex = index; showDescription = true;">
+                                            <span class="tw-inline-flex tw-items-center">{{ option[labelBy] }}
+                                                <div v-if="showIndicator" :title="option.indicatorTitle"
+                                                    class="tw-inline-block tw-rounded-full tw-p-1 tw-border-2 tw-ml-1"
+                                                    :class="{ 'bg-success border-success': option.indicatorFilled, 'bg-base border-success': !option.indicatorFilled }">
+                                                </div>
+                                            </span>
                                         </div>
                                     </template>
                                 </template>
 
-                                <template v-else-if=" searchResults.includes(index) ">
+                                <template v-else-if="searchResults.includes(index)">
                                     <!-- Show search results group headers -->
-                                    <template v-if=" option.group ">
+                                    <template v-if="option.group">
                                         <div @click.capture.stop
                                             class="tw-px-4 tw-py-2 tw-font-semibold tw-text-md bg-main color-highlight tw-shadow-sm"
-                                            :class=" [`elem-${index}`, { 'hover-color': index === searchFocus }, option.classNameSpec, option.classNameGen] ">
+                                            :ref="setElemRefs"
+                                            :class="[{ 'select-hover-highlight': index === searchFocus && hoverColor === 'highlight', 'select-hover-gray': index === searchFocus && hoverColor === 'gray' }, option.classNameSpec, option.classNameGen]">
                                             {{ option[labelBy] }}
                                         </div>
                                     </template>
 
                                     <!-- Show search results group entries -->
                                     <template v-else>
-                                        <div :style=" `background-color: ${optionColors[index]}` "
-                                            class="tw-px-4 tw-py-2 tw-text-sm color-primary item tw-shadow-sm tw-outline-none"
-                                            :class=" [`elem-${index}`, { 'hover-color': index === searchFocus }, option.classNameSpec, option.classNameGen, { 'bg-main-dark': (lastSelectedIndex === index), 'text-blue-300': multiSelectIndices.includes(index) }] "
-                                            @mouseenter=" descriptionIndex = index; showDescription = true; ">
+                                        <div :style="`background-color: ${optionColors[index]}`"
+                                            class="tw-px-4 tw-py-2 tw-text-sm color-primary tw-shadow-sm tw-outline-none"
+                                            :ref="setElemRefs"
+                                            :class="`dropdown-item-${hoverColor}`, [{ 'select-hover-highlight': index === searchFocus && hoverColor === 'highlight', 'select-hover-gray': index === searchFocus && hoverColor === 'gray' }, option.classNameSpec, option.classNameGen, { 'bg-main-dark': (lastSelectedIndex === index), 'text-blue-300': multiSelectIndices.includes(index) }]"
+                                            @mouseenter=" descriptionIndex = index; showDescription = true;">
                                             {{ option[labelBy] }}
                                         </div>
                                     </template>
@@ -189,25 +233,25 @@
                         </template>
                     </div>
 
-                    <div v-if=" optionDescription && showDescription "
+                    <div v-if="optionDescription && showDescription"
                         class="tw-absolute tw-rounded-md tw-left-full dropdown-params tw-max-w-250 tw-text-left tw-px-4 tw-py-2 tw-whitespace-normal tw-overflow-y-auto bg-primary">
                         <p class="tw-pb-2">Beschreibung:</p>
                         <p class="tw-text-sm tw-text-white">{{ options[descriptionIndex].description }}</p>
                     </div>
                 </div>
 
-                <div v-if=" searchable && openingDirection === 'up' && options.length " class="tw-px-4 tw-my-2">
+                <div v-if="searchable && openingDirection === 'up' && options.length" class="tw-px-4 tw-my-2">
                     <div class="tw-flex tw-flex-row tw-border-t border-gray-02">
                         <div class="tw-bg-white tw-flex tw-items-center tw-px-1 tw-py-1 tw-rounded-r-md">
                             <img src="@/assets/svg/icon-lens.svg" class="tw-w-3 tw-h-3 tw-inline-block" alt="search"
                                 @dragstart.prevent>
                         </div>
                         <div class="tw-flex-grow">
-                            <input :id=" searchUUID " type="text" v-model=" searchKeyword " @input=" searchForOption "
-                                placeholder="Liste filtern" class="revert-me input-select-search"
+                            <input :ref="(el) => { searchInput = el }" type="text" v-model="searchKeyword"
+                                @input="searchForOption" placeholder="Liste filtern" class="revert-me input-select-search"
                                 style="pointer-event: auto;">
                         </div>
-                        <div v-if=" searchKeyword.length " @click.stop=" quitSearch "
+                        <div v-if="searchKeyword.length" @click.stop="quitSearch"
                             class="tw-flex tw-justify-center tw-items-center">
                             <img src="@/assets/svg/icon-xr-primary.svg" class="tw-w-4 tw-h-4" alt="delete"
                                 @dragstart.prevent>
@@ -215,8 +259,8 @@
                     </div>
                 </div>
 
-                <PkSelectAddElement class="tw-rounded-b-md" :class=" { 'tw-rounded-t-md': options.length === 0 } "
-                    v-if=" addElementActive " :text=" addElementText " @addElement=" addElement "></PkSelectAddElement>
+                <PkSelectAddElement class="tw-rounded-b-md" :class="{ 'tw-rounded-t-md': options.length === 0 }"
+                    v-if="addElementActive" :text="addElementText" @addElement="addElement"></PkSelectAddElement>
             </div>
         </transition>
     </div>
@@ -230,6 +274,7 @@ import {
     computed,
     onMounted,
     onBeforeUnmount,
+    onBeforeUpdate,
     nextTick
 } from 'vue'
 
@@ -239,6 +284,10 @@ import PkSelectAddElement from './PkSelectAddElement.vue';
 export default {
     name: "pk_select",
     props: {
+        tabindex: {
+            type: Number,
+            default: 0
+        },
         optionIndexModel: {
             type: Number,
             default: null
@@ -309,12 +358,22 @@ export default {
             type: String,
             required: false
         },
+        activeElement: {
+            type: Boolean,
+            required: false,
+            default: false
+        },
         hasError: {
             type: Boolean,
             required: false,
             default: false
         },
         deactivated: {
+            type: Boolean,
+            required: false,
+            default: false
+        },
+        rimless: {
             type: Boolean,
             required: false,
             default: false
@@ -352,15 +411,42 @@ export default {
             required: false,
             default: false
         },
-        withinShadowDom: {
+        showAdditionalInfoDisplayed: {
             type: Boolean,
             required: false,
             default: false
         },
-        shadowRootElement: {
+        additionalInfoDisplayed: {
             type: String,
-            required: true
+            default: ""
         },
+        showIndicator: {
+            type: Boolean,
+            required: false,
+            default: false
+        },
+        flexibleWidth: {
+            type: Boolean,
+            required: false,
+            default: false
+        },
+        hoverColor: {
+            type: String,
+            required: false,
+            default: "highlight"
+        },
+        parentElement: {
+            type: String,
+            default: ""
+        },
+        useParentScroll: {
+            type: Boolean,
+            default: false
+        },
+        hideChevron: {
+            type: Boolean,
+            default: false
+        }
     },
     components: {
         PkSelectAdditionals,
@@ -372,14 +458,25 @@ export default {
     setup(props, {
         emit
     }) {
+        // Template refs
+        const scrollBox = ref(null),
+            elems = ref([]),
+            dropdownTab = ref(null),
+            containerElement = ref(null),
+            searchInput = ref(null);
+
+        const setElemRefs = (el) => {
+            if (el) {
+                elems.value.push(el);
+            }
+        };
+
         const controller = new AbortController();
         // DROPDOWN CONFIG
         var open = ref(false),
             noValueSelected = ref(true),
             showDescription = ref(false),
-            openingDirection = ref("down"),
-            searchUUID = btoa(Math.random().toString()).substring(10, 20),
-            elementID = btoa(Math.random().toString()).substring(10, 20);
+            openingDirection = ref("down");
 
         var optionColors = reactive([]);
         var supportsPassive = false,
@@ -400,54 +497,45 @@ export default {
             });
         }
 
-        const checkIfListElementIsRendered = async (className) => {
+        const checkIfListElementIsRendered = async () => {
             await delay(5);
-            if (props.withinShadowDom ? props.shadowRootElement.getElementsByClassName(className)[0] : document.getElementsByClassName(className)[0]) {
+
+            if (elems.value.length) {
                 return Promise.resolve(true);
             }
-            return await checkIfListElementIsRendered(className);
+            return await checkIfListElementIsRendered();
         }
 
         const openCloseSelect = async (evt, pos) => {
+            if (!enableChevronAnimation.value) enableChevronAnimation.value = true;
             if (props.deactivated) {
                 return;
             }
             if (open.value) {
                 closedState();
             } else {
+                if (!props.options.length) {
+                    return;
+                }
                 open.value = true;
                 // If a select was made
                 if ((lastSelectedIndex.value || lastSelectedMultipleIndex) && props.options && props.options.length) {
-                    if (!props.multiselect) {
-                        hasFocus.value = lastSelectedIndex.value;
-                        if (await checkIfListElementIsRendered(`elem-${lastSelectedIndex.value}`)) {
-                            if (props.withinShadowDom) {
-                                props.shadowRootElement.getElementsByClassName(`elem-${lastSelectedIndex.value}`)[0].focus();
-                            } else {
-                                document.getElementsByClassName(`elem-${lastSelectedIndex.value}`)[0].focus();
-                            }
+                    if (await checkIfListElementIsRendered()) {
+                        if (!props.multiselect) {
+                            hasFocus.value = lastSelectedIndex.value;
+                            elems.value[0].focus();
                             scrollToFocusedElement();
-                        }
-                    } else {
-                        hasFocus.value = lastSelectedMultipleIndex;
-                        if (await checkIfListElementIsRendered(`elem-${lastSelectedMultipleIndex}`)) {
-                            if (props.withinShadowDom) {
-                                props.shadowRootElement.getElementsByClassName(`elem-${lastSelectedMultipleIndex}`)[0].focus();
-                            } else {
-                                document.getElementsByClassName(`elem-${lastSelectedMultipleIndex}`)[0].focus();
-                            }
+                        } else {
+                            hasFocus.value = lastSelectedMultipleIndex;
+                            elems.value[lastSelectedMultipleIndex].focus()
                             scrollToFocusedElement();
                         }
                     }
                 } else if (props.options && props.options.length) {
                     // If no element was selected
                     if (!props.grouped) {
-                        if (await checkIfListElementIsRendered(`elem-0`)) {
-                            if (props.withinShadowDom) {
-                                props.shadowRootElement.getElementsByClassName(`elem-0`)[0].focus();
-                            } else {
-                                document.getElementsByClassName(`elem-0`)[0].focus();
-                            }
+                        if (await checkIfListElementIsRendered()) {
+                            elems.value[0].focus();
                         }
 
                         if (currentlySearching.value) {
@@ -457,12 +545,9 @@ export default {
                         }
                     } else {
                         var elem = getFirstGroupedItem();
-                        if (await checkIfListElementIsRendered(`${elem.el.classNameSpec}`)) {
-                            if (props.withinShadowDom) {
-                                props.shadowRootElement.getElementsByClassName(`${elem.el.classNameSpec}`)[0].focus();
-                            } else {
-                                document.getElementsByClassName(`${elem.el.classNameSpec}`)[0].focus();
-                            }
+                        if (await checkIfListElementIsRendered()) {
+                            const entryToFocus = elems.value.find((element) => element.classList.contains(elem.el.classNameSpec));
+                            entryToFocus.focus();
                         }
 
                         if (currentlySearching.value) {
@@ -510,7 +595,11 @@ export default {
                 return selected.value[props.labelBy];
                 // return (selected.value[props.labelBy].length > 15 ? selected.value[props.labelBy].substring(0, 15 - 3) + "..." : selected.value[props.labelBy].substring(0, 15));
             } else {
-                return props.noSelectionText;
+                if (!props.options.length) {
+                    return "Keine Optionen verfügbar"
+                } else {
+                    return props.noSelectionText;
+                }
             }
         })
 
@@ -587,11 +676,9 @@ export default {
                         noValueSelected.value = true;
                         if (open.value) {
                             var elem = getFirstGroupedItem();
-                            if (props.withinShadowDom) {
-                                props.shadowRootElement.getElementsByClassName(`${elem.el.classNameSpec}`)[0].focus();
-                            } else {
-                                document.getElementsByClassName(`${elem.el.classNameSpec}`)[0].focus();
-                            }
+                            const entryToFocus = elems.value.find((element) => element.classList.contains(elem.el.classNameSpec));
+                            entryToFocus.focus();
+
                             if (lastSelectedMultipleIndex) {
                                 hasFocus.value = lastSelectedMultipleIndex;
                             } else {
@@ -788,11 +875,11 @@ export default {
 
         // ---------------------------------------------------------------------------------------------------- Arrow navigation
         const scrollToFocusedElement = () => {
-            var scrollBox = props.withinShadowDom ? props.shadowRootElement.querySelector("#scrollBox") : document.getElementById("scrollBox");
-            var elem = props.withinShadowDom ? props.shadowRootElement.getElementsByClassName(`elem-${hasFocus.value}`)[0] : document.getElementsByClassName(`elem-${hasFocus.value}`)[0];
-            var x = props.withinShadowDom ? scrollBox.getBoundingClientRect().x : scrollBox.getBoundingClientRect().x;
-            var y = (elem.offsetHeight * hasFocus.value) - 2 * (elem.offsetHeight);
-            scrollBox.scrollTo(x, y);
+            var elem = elems.value[hasFocus.value],
+                x = scrollBox.value?.getBoundingClientRect().x,
+                y = (elem?.offsetHeight * hasFocus.value) - 2 * (elem?.offsetHeight);
+
+            scrollBox.value?.scrollTo(x, y);
         }
 
         const focusedIsGroupHeader = (searching, direction, backupfocus) => {
@@ -867,7 +954,7 @@ export default {
                     return true;
                 }
             }
-        }
+        };
 
         const checkGroupedResults = () => {
             let filtered = searchResults.filter((el) => {
@@ -916,13 +1003,6 @@ export default {
                 treshold = 1;
             }
 
-            var scrollBox = null;
-            if (props.withinShadowDom) {
-                scrollBox = props.shadowRootElement.querySelector("#scrollBox");
-            } else {
-                scrollBox = document.getElementById("scrollBox");
-            }
-
             if (currentlySearching.value && searchResults.length > 0) {
                 if (props.grouped && (evt.code !== "ArrowUp" || evt.code !== "ArrowDown" || evt.code !== "Enter")) {
                     if (!checkGroupedResults()) return;
@@ -953,21 +1033,14 @@ export default {
                 }
 
                 if (evt.code !== "ArrowUp" && evt.code !== "ArrowDown" && evt.code !== "Enter" && open.value) {
-                    if (props.withinShadowDom) {
-                        props.shadowRootElement.querySelector("#" + searchUUID).focus();
-                    } else {
-                        document.getElementById(searchUUID).focus();
-                    }
+                    searchInput.value?.focus();
                 } else if (open.value) {
                     evt.preventDefault();
                     try {
-                        var container = props.withinShadowDom ? props.shadowRootElement.querySelector(`#dropdowntab${elementID}`) : document.getElementById(`dropdowntab${elementID}`);
-                        var middle = props.withinShadowDom ? props.shadowRootElement.getElementsByClassName(`elem-${searchFocus.value}`)[0] : document.getElementsByClassName(`elem-${searchFocus.value}`)[0];
+                        var x = scrollBox.value?.getBoundingClientRect().x;
+                        var y = elems.value[searchFocus.value]?.offsetTop + elems.value[searchFocus.value]?.offsetHeight / 2 - dropdownTab.value?.offsetHeight / 2;
 
-                        var x = scrollBox.getBoundingClientRect().x;
-                        var y = middle.offsetTop + middle.offsetHeight / 2 - container.offsetHeight / 2;
-
-                        scrollBox.scrollTo(x, y);
+                        scrollBox.value?.scrollTo(x, y);
                     } catch (error) {
                         console.log(error);
                         return;
@@ -1001,21 +1074,14 @@ export default {
                 }
 
                 if (evt.code !== "ArrowUp" && evt.code !== "ArrowDown" && evt.code !== "Enter" && open.value) {
-                    if (props.withinShadowDom) {
-                        props.shadowRootElement.querySelector("#" + searchUUID).focus()
-                    } else {
-                        document.getElementById(searchUUID).focus();
-                    }
+                    searchInput.value?.focus();
                 } else if (open.value) {
                     evt.preventDefault();
                     try {
-                        var container = props.withinShadowDom ? props.shadowRootElement.querySelector(`#dropdowntab${elementID}`) : document.getElementById(`dropdowntab${elementID}`);
-                        var middle = props.withinShadowDom ? props.shadowRootElement.getElementsByClassName(`elem-${hasFocus.value}`)[0] : document.getElementsByClassName(`elem-${hasFocus.value}`)[0];
+                        var x = scrollBox.value?.getBoundingClientRect().x;
+                        var y = elems.value[hasFocus.value]?.offsetTop + elems.value[hasFocus.value]?.offsetHeight / 2 - dropdownTab.value?.offsetHeight / 2;
 
-                        var x = scrollBox.getBoundingClientRect().x;
-                        var y = middle.offsetTop + middle.offsetHeight / 2 - container.offsetHeight / 2;
-
-                        scrollBox.scrollTo(x, y);
+                        scrollBox.value?.scrollTo(x, y);
                     } catch (error) {
                         console.log(error);
                         return;
@@ -1099,6 +1165,8 @@ export default {
             emit('addElement')
         }
 
+        let enableChevronAnimation = ref(false);
+
         onMounted(() => {
             nextTick(() => {
                 if (props.preselect && (typeof props.preselectIndex[0] == 'number') && props.preselectIndex[0] !== null && props.options.length) {
@@ -1171,30 +1239,30 @@ export default {
             });
 
             window.addEventListener('mouseup', (evt) => {
-                if (props.withinShadowDom) {
-                    if (props.shadowRootElement.querySelector("#" + elementID)?.contains(evt.composedPath()[0])) {
-                        return;
-                    } else {
-                        closedState();
-                    }
+                if (containerElement.value?.contains(evt.composedPath()[0])) {
+                    return;
                 } else {
-                    if (document.getElementById(elementID)?.contains(evt.target)) {
-                        return;
-                    } else {
-                        closedState();
-                    }
+                    closedState();
                 }
             }, {
                 signal: controller.signal
             });
 
             // Event Listener and calculations for opening direction
-            element = props.withinShadowDom ? props.shadowRootElement.querySelector("#" + elementID) : document.getElementById(elementID);
-
-            if ((window.innerHeight - element.getBoundingClientRect().bottom) > 250) {
-                openingDirection.value = "down";
+            if (!props.useParentScroll) {
+                if ((window.innerHeight - containerElement.value?.getBoundingClientRect().bottom) > 250) {
+                    openingDirection.value = "down";
+                } else {
+                    openingDirection.value = "up";
+                }
             } else {
-                openingDirection.value = "up";
+                let dist = (props.parentElement?.getBoundingClientRect().height - containerElement.value?.getBoundingClientRect().bottom);
+
+                if (dist > 200) {
+                    openingDirection.value = "down";
+                } else {
+                    openingDirection.value = "up";
+                }
             }
 
             try {
@@ -1207,27 +1275,55 @@ export default {
                 window.removeEventListener("testPassive", null, opts);
             } catch (e) { }
 
-            window.addEventListener("scroll", () => {
-                if (timerId) return;
-                timerId = setTimeout(function () {
-                    timerId = null;
+            if (!props.useParentScroll) {
+                window.addEventListener("scroll", () => {
+                    if (timerId) return;
+                    timerId = setTimeout(function () {
+                        timerId = null;
 
-                    if (element) {
-                        if ((window.innerHeight - element.getBoundingClientRect().bottom) > 250) {
-                            openingDirection.value = "down";
-                        } else {
-                            openingDirection.value = "up";
+                        if (containerElement.value) {
+                            let dist = (window.innerHeight - containerElement.value?.getBoundingClientRect().bottom);
+                            if (dist > 250) {
+                                openingDirection.value = "down";
+                            } else {
+                                openingDirection.value = "up";
+                            }
                         }
-                    }
-                }, 100);
-            }, {
-                signal: controller.signal,
-                passive: supportsPassive ? true : false
-            });
+                    }, 100);
+                }, {
+                    signal: controller.signal,
+                    passive: supportsPassive ? true : false
+                });
+            } else {
+                props.parentElement.addEventListener("scroll", () => {
+                    if (timerId) return;
+                    timerId = setTimeout(function () {
+                        timerId = null;
+
+                        if (containerElement.value) {
+                            let dist = (props.parentElement?.getBoundingClientRect().bottom - containerElement.value?.getBoundingClientRect().bottom);
+
+                            if (dist > 275) {
+                                openingDirection.value = "down";
+                            } else {
+                                openingDirection.value = "up";
+                            }
+                        }
+                    }, 100);
+                }, {
+                    signal: controller.signal,
+                    passive: supportsPassive ? true : false
+                });
+            }
         });
 
         onBeforeUnmount(() => {
             controller.abort();
+        });
+
+        // Make sure to reset the refs before each update.
+        onBeforeUpdate(() => {
+            elems.value = [];
         });
 
         return {
@@ -1237,8 +1333,6 @@ export default {
             multiSelected,
             optionColors,
             searchResults,
-            searchUUID,
-            elementID,
             currentlySearching,
             open,
             noValueSelected,
@@ -1249,6 +1343,7 @@ export default {
             searchFocus,
             multiSelectIndices,
             searchKeyword,
+            enableChevronAnimation,
             // Methods
             openCloseSelect,
             selectEvent,
@@ -1257,7 +1352,14 @@ export default {
             searchForOption,
             quitSearch,
             arrowNavigation,
-            addElement
+            addElement,
+            // Template refs
+            scrollBox,
+            elems,
+            dropdownTab,
+            containerElement,
+            searchInput,
+            setElemRefs
         }
     }
 };
